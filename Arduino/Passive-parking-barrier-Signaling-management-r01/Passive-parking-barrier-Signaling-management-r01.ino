@@ -8,11 +8,19 @@
 #define NumeroSblocchi 2
 #define SbloccoAntibounce 200
 
-uint8_t SbloccoPIN[NumeroSblocchi] = {Sblocco1PIN,
+int SbloccoPIN[NumeroSblocchi] = {Sblocco1PIN,
                                       Sblocco2PIN};
 //Memorizza lo stato dei pulsanti di sblocco durante il loop
 uint8_t SbloccoFlag = 0;
-                                      
+
+//===================================================================================================
+//LED di SBLOCCO
+//===================================================================================================
+#define SbloccoLED1PIN 10
+#define SbloccoLED2PIN 11
+int SbloccoLEDPIN[NumeroSblocchi] = {SbloccoLED1PIN,
+                                         SbloccoLED2PIN};
+
 //===================================================================================================
 // Buzzer
 //===================================================================================================
@@ -21,8 +29,8 @@ uint8_t SbloccoFlag = 0;
 #define BuzzerTono1 800
 #define BuzzerTono2 1200
 
-uint8_t BuzzerState=0;
-uint32_t BuzzerTime;
+int BuzzerState=0;
+float BuzzerTime;
 
 
 //===================================================================================================
@@ -35,17 +43,15 @@ uint32_t BuzzerTime;
 
 #define NumeroBarre 2
 #define NumeroColori 2
-const uint8_t LEDBarraPIN[NumeroBarre] [NumeroColori] = {LEDBarraPIN12RossoPIN,
-                                                         LEDBarraPIN12VerdePIN,
-                                                         LEDBarraPIN34RossoPIN,
-                                                         LEDBarraPIN34VerdePIN};
-
-#define LEDVisibleLevel 128
+const int LEDBarraPIN[NumeroBarre] [NumeroColori] = {LEDBarraPIN12RossoPIN,
+                                                     LEDBarraPIN12VerdePIN,
+                                                     LEDBarraPIN34RossoPIN,
+                                                     LEDBarraPIN34VerdePIN};
 
 #define LEDFlash 300
 uint8_t LEDColor[2]={0, 0};
-uint8_t LEDCounter=0;
-uint32_t LEDTime;
+boolean LEDCounter=LOW;
+float LEDTime;
 
 //===================================================================================================
 // Sensori Sbarre
@@ -56,7 +62,7 @@ uint32_t LEDTime;
 #define SbarraSensor4APIN 3
 #define NumSensori 4
 uint16_t HallLettura[NumSensori];
-uint8_t HallAPIN[NumSensori] = {SbarraSensor1APIN,
+int HallAPIN[NumSensori] = {SbarraSensor1APIN,
                                 SbarraSensor2APIN,
                                 SbarraSensor3APIN,
                                 SbarraSensor4APIN};
@@ -69,7 +75,7 @@ uint8_t HallDigitalState = 0;
 
 #define SogliaPerHall 600
 
-#define SerialSpeed 56700
+#define SerialSpeed 115200
 
 //===================================================================================================
 // Setup
@@ -78,16 +84,17 @@ void setup()
 {
   Serial.begin(SerialSpeed);
 
-  //Inizializza i sensori di sblocco
-  for (uint8_t ii=0; ii<NumeroSblocchi; ii++)
+  //Inizializza i sensori e i LED di sblocco
+  for (int ii=0; ii<NumeroSblocchi; ii++)
   {
     pinMode(SbloccoPIN[ii],INPUT_PULLUP);
+    pinMode(SbloccoLEDPIN[ii],OUTPUT);
   }
 
   //Inizializza il controllo dei LED
-  for (uint8_t ii=0; ii<NumeroBarre; ii++)
+  for (int ii=0; ii<NumeroBarre; ii++)
   {
-    for (uint8_t iii=0; iii< NumeroColori; iii++)
+    for (int iii=0; iii< NumeroColori; iii++)
     {
       pinMode(LEDBarraPIN[ii][iii],OUTPUT);
     }
@@ -103,6 +110,10 @@ void setup()
 void loop() 
 {
   LeggeSblocco();
+  Serial.print("Stato generale ");
+  Serial.print(HallDigitalState, BIN);
+  Serial.print("   -  Sblocco Flag ");
+  Serial.println(SbloccoFlag, BIN);
   LeggeSensori(SogliaPerHall);
   BuzzAllarm();
   LEDAllarm();
@@ -118,7 +129,7 @@ void LeggeSensori(uint16_t Soglia)
 {
   HallDigitalState = HallDigitalState & B11110000;//Azzera lo stato digitale degli allarmi
   //Legge i sensori in analogico e ricava lo stato digitale
-  for (uint8_t ii=0; ii< NumSensori; ii++)
+  for (int ii=0; ii< NumSensori; ii++)
   {
     HallLettura[ii] = analogRead(HallAPIN[ii]);
     //Setta il risultato sotto forma digitale
@@ -141,23 +152,37 @@ void LeggeSblocco()
 //Nello stato VERDE il buzzer non suona
 {
   //Legge i sensori di sblocco
-  for (uint8_t ii=0; ii< NumSensori; ii++)
+  for (int ii=0; ii< NumeroSblocchi; ii++)
   {
     //Se uno degli sblocchi è premuto ed è la prima volta che lo trova premuto
-    if ((digitalRead(SbloccoPIN[ii] == LOW)) & (bitRead(SbloccoFlag,5+ii) == LOW))
+    if ((digitalRead(SbloccoPIN[ii]) == LOW) & (bitRead(SbloccoFlag,6+ii) == LOW))
     //Gestisce l'anti bounche
     {
       delay(SbloccoAntibounce);
-      if (digitalRead(SbloccoPIN[ii] == LOW))
+      if (digitalRead(SbloccoPIN[ii]) == LOW)
       {
-        bitWrite(HallDigitalState,5+ii,!(bitRead(HallDigitalState,5+ii)));
-        bitSet(SbloccoFlag,5+ii);
+        bitWrite(HallDigitalState,6+ii,!(bitRead(HallDigitalState,6+ii)));
+        bitSet(SbloccoFlag,6+ii);
+        Serial.print(ii);
+        Serial.println(" SbloccoFlag 167, SET");
+        digitalWrite(SbloccoLEDPIN[ii],bitRead(HallDigitalState,6+ii));
       }
     }
     else
     {
-      //Resetta il bit che informa il loop che era già premuto
-      bitClear(SbloccoFlag,5+ii);
+      if ((digitalRead(SbloccoPIN[ii])==HIGH) & (bitRead(SbloccoFlag,6+ii) == HIGH))
+      //Se il pulsante di sblocco è stato rilasciato
+      //Gestisce l'anti bounche
+      {
+        delay(SbloccoAntibounce);
+        if (digitalRead(SbloccoPIN[ii]) == HIGH)
+        //Resetta il controllo del loop 
+        {
+          bitClear(SbloccoFlag,6+ii);
+          Serial.print(ii);
+          Serial.println(" SbloccoFlag 181, CLEAR");
+        }
+      }
     }
   }
 }
@@ -172,7 +197,8 @@ void BuzzAllarm()
 //-il buzzer NON sta già suonando
 //lo fa suonare
 {
-  if (HallDigitalState!=0)
+  if (((HallDigitalState&B00000011)!=0) & ((HallDigitalState&B01000000)==0) |
+      ((HallDigitalState&B00001100)!=0) & ((HallDigitalState&B10000000)==0))
   {
     switch (BuzzerState)
     {
@@ -220,20 +246,41 @@ void LEDAllarm()
 //Passato TAlzata smette di lampeggiare
 //Lampeggia Verde quando è stato dato il comando di "avanti"
 {
-  if ((HallDigitalState&B00000011)>0)
-  //Se uno dei sensori della varco 1 è in allarme setta il colore rosso
+  if ((HallDigitalState & B0100000) == HIGH)
+  //Verde sul cancello 1
   {
-    LEDColor[0]=1;
+    LEDColor[0] = 1;
   }
-  if ((HallDigitalState&B0001100)>0)
+  if ((HallDigitalState & B1000000) == HIGH)
+  //Verde sul cancello 2
   {
-    LEDColor[1]=1;
+    LEDColor[1] = 1;
   }
-  
+  if ((HallDigitalState & B0100000) == LOW)
+  //Rosso sul cancello 1
+  {
+    LEDColor[0] = 0;
+  }
+  if ((HallDigitalState & B1000000) == LOW)
+  //Rosso sul cancello 2
+  {
+    LEDColor[1] = 0;
+  }
   if (millis()>(LEDTime+LEDFlash))
   //Quando il tempo è finito aggiorna i LED
   {
-    LEDCounter++;
+    //Spegne tutte le barre
+    digitalWrite(LEDBarraPIN[0][0], HIGH);
+    digitalWrite(LEDBarraPIN[0][1], HIGH);
+    digitalWrite(LEDBarraPIN[1][0], HIGH);
+    digitalWrite(LEDBarraPIN[1][1], HIGH);
+    //Aggiorna il contatore di stato dei LED
+    LEDCounter = !LEDCounter;
+    if (LEDCounter == HIGH)
+    //Se è il ciclo di LED accesi le setta
+    {
+      digitalWrite(LEDBarraPIN[0][LEDColor[0]], LOW);
+      digitalWrite(LEDBarraPIN[1][LEDColor[1]], LOW);
+    }
   }
-
 }
