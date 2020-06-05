@@ -23,6 +23,7 @@
 
 #define RST_PIN         9           // Configurable, see typical pin layout above
 #define SS_PIN          10          // Configurable, see typical pin layout above
+#define RFIDResetManuale 8
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 
@@ -40,9 +41,9 @@ byte knownKeys[NR_KNOWN_KEYS][4] =  {{0x97, 0x96, 0x0C, 0x3B},//1
                                      {0xA4, 0x40, 0x1B, 0xB8} //8
                                      };
 
-byte ReadKey[MFRC522::MF_KEY_SIZE][2];
-byte RFIDFlag=0;
-byte RFIDCompare=0;
+byte ReadKey[MFRC522::MF_KEY_SIZE];
+byte RFIDFlag=99;
+byte RFIDCompare=99;
 //===================================================================================================
 //Sensori di SBLOCCO
 //===================================================================================================
@@ -55,6 +56,7 @@ int SbloccoPIN[NumeroSblocchi] = {Sblocco1PIN,
                                       Sblocco2PIN};
 //Memorizza lo stato dei pulsanti di sblocco durante il loop
 uint8_t SbloccoFlag = 0;
+uint8_t SbloccoCompare = 99;
 
 //===================================================================================================
 //LED di SBLOCCO
@@ -126,11 +128,11 @@ uint8_t HallDigitalState = 0;
 void setup() 
 {
   Serial.begin(SerialSpeed);
-
+  Serial.println("Start");
   //Inizializza il lettore di card RFID
   SPI.begin();                // Init SPI bus
   mfrc522.PCD_Init();         // Init MFRC522 card
-
+  pinMode(RFIDResetManuale, OUTPUT);
   //Inizializza i sensori e i LED di sblocco
   for (int ii=0; ii<NumeroSblocchi; ii++)
   {
@@ -157,7 +159,8 @@ void setup()
 void loop() 
 {
   ReadRFID();
-  LeggeSblocco();
+//  LeggePulsantiSblocco();
+  GestisceCardSblocco();
 //  Serial.print("Stato generale ");
 //  Serial.print(HallDigitalState, BIN);
 //  Serial.print("   -  Sblocco Flag ");
@@ -197,48 +200,74 @@ void LeggeSensori(uint16_t Soglia)
 //===================================================================================================
 void ReadRFID()
 {
+//  Serial.println("Inizio controllo CARD");
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   if ( ! mfrc522.PICC_IsNewCardPresent())
   {
+    if(RFIDFlag>=99)
+    {
+      RFIDFlag++;
+      if (RFIDFlag==130)
+      {
+        SbloccoCompare=RFIDCompare;
+        RFIDCompare=99;
+        SbloccoFlag=0;
+    Serial.println("Nessuna card rilevata");
+      }
+    }
     return;
   }
 
   // Select one of the cards
   if ( ! mfrc522.PICC_ReadCardSerial())
   {
+    Serial.println("--------------------------- Card Serial");
+    RFIDCompare=99;
     return;
   }
-  if(RFIDCompare!=99)
+  if(RFIDCompare==99)
   {
+    Serial.println("Ciclo di reset");
+//    digitalWrite(RFIDResetManuale,HIGH);
+//    delay(10);
+//    digitalWrite(RFIDResetManuale, !digitalRead(RFIDResetManuale));
+//    delay(10);
+    mfrc522.PCD_Init();         // Init MFRC522 card
     RFID_UID(mfrc522.uid.uidByte, mfrc522.uid.size);
   }
+  Serial.print("Fine controllo CARD. Flag ");
+  Serial.print(RFIDFlag);
+  Serial.print(" Compare ");
+  Serial.println(RFIDCompare);
 }
 
+//===================================================================================================
+// Legge il buffer del lettore di card e controlla se conosce la card trovata
+//===================================================================================================
 void RFID_UID(byte *buffer, byte bufferSize)
 {
   RFIDCompare = 99;
   for (byte i = 0; i < bufferSize; i++) 
   //Scandisce tutti i caratteri del codice
   {
-    Serial.print("Contatore ");
-    Serial.println(i);
-    Serial.print(" RFIDFlag ");
-    Serial.print(RFIDFlag);
-    ReadKey[i][RFIDFlag]=buffer[i];
-    Serial.print(" Value [0] ");
-    Serial.print(ReadKey[i][0],HEX);
-    Serial.print(" Scan ");
+//    Serial.print("Contatore ");
+//    Serial.println(i);
+    ReadKey[i]="";
+    ReadKey[i]=buffer[i];
+//    Serial.print(" Value [0] ");
+//    Serial.print(ReadKey[i],HEX);
+//    Serial.print(" Scan ");
     if ((i==0) & (RFIDCompare == 99))
     //Scandisce il primo carattere di ogni codice noto per vedere se corrisponde a quello letto
     {
       for (uint8_t iii=0; iii< NR_KNOWN_KEYS; iii++)
       {
-        Serial.print(iii);
-        Serial.print(" - ");
-        if(ReadKey[i][0]==knownKeys[iii][i])
+//        Serial.print(iii);
+//        Serial.print(" - ");
+        if(ReadKey[i]==knownKeys[iii][i])
         {
-          Serial.print(" Value [1] ");
-          Serial.println(knownKeys[iii][i],HEX);
+//          Serial.print(" Value [1] ");
+//          Serial.println(knownKeys[iii][i],HEX);
           RFIDCompare=iii;
           iii=NR_KNOWN_KEYS;
         }
@@ -247,24 +276,74 @@ void RFID_UID(byte *buffer, byte bufferSize)
     if ((i>0) & (RFIDCompare !=99))
     //Scandisce i caratteri successivi della chiave corrispondente al controllo del primo carattere
     {
-        if(ReadKey[i][0]!=knownKeys[RFIDCompare][i])
+        if(ReadKey[i]!=knownKeys[RFIDCompare][i])
         //Se uno dei caratteri successivi al primo non corrisponde blocca il controllo
         {
-          Serial.print(" Value [n] ");
-          Serial.println(knownKeys[RFIDCompare][i],HEX);
+//          Serial.print(" Value [n] ");
+//          Serial.println(knownKeys[RFIDCompare][i],HEX);
           RFIDCompare=99;
         }      
     }
   }
-  Serial.print("Fine controllo ");
+  Serial.print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Fine controllo ");
   Serial.println(RFIDCompare);
-  //RFIDFlag=1;
+  RFIDFlag=99;
+}
+
+//===================================================================================================
+// Gestisce i comandi dati tramite le card di sblocco
+//===================================================================================================
+void GestisceCardSblocco()
+{
+  if (SbloccoFlag==0)
+  //Se è la prima volta che ci passa
+  //gestisce il caso
+  {
+    Serial.print("Sblocco Flag ");
+    Serial.println(SbloccoFlag);
+    Serial.print(" - Sblocco Compare ");
+    Serial.println(RFIDCompare);
+    SbloccoFlag++;
+    switch (SbloccoCompare)
+    {
+      case 99://??
+        break;
+      case 0://Verde cancello 1
+        bitWrite(HallDigitalState,6,!(bitRead(HallDigitalState,6)));
+//        RFIDFlag=0;
+        //RFIDCompare=99;
+        Serial.println("========================================>Sbloccato cancello 1");
+        break;
+      case 1://Verde Cancello 2
+        bitWrite(HallDigitalState,7,!(bitRead(HallDigitalState,7)));
+//        RFIDFlag=1;
+        //RFIDCompare=99;
+        Serial.println("========================================>Sbloccato cancello 2");
+        break;
+      case 2:
+        break;
+      case 3:
+        break;
+      case 4:
+        break;
+      case 5:
+        break;
+      case 6:
+        break;
+      case 7:
+        break;
+      case 8:
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 //===================================================================================================
 // Legge i pulsanti di sblocco
 //===================================================================================================
-void LeggeSblocco()
+void LeggePulsantiSblocco()
 //Legge Sblocco permette di mettere in stato "VERDE" i gate
 //Nello stato VERDE il buzzer non suona
 {
