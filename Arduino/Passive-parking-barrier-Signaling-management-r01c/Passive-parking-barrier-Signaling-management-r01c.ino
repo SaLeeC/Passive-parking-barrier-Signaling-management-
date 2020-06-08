@@ -120,7 +120,136 @@ uint8_t HallDigitalState = 0;
 
 #define SogliaPerHall 600
 
+//===================================================================================================
+// Seriale
+//===================================================================================================
 #define SerialSpeed 115200
+
+
+
+//===================================================================================================
+// Musica
+//===================================================================================================
+float ThisMoment;
+uint8_t ThisNote;
+#define NOTE_A3  220
+#define NOTE_AS3 233
+#define NOTE_B3  247
+#define NOTE_C4  262
+#define NOTE_CS4 277
+#define NOTE_D4  294
+#define NOTE_DS4 311
+#define NOTE_E4  330
+#define NOTE_F4  349
+#define NOTE_FS4 370
+#define NOTE_G4  392
+#define NOTE_GS4 415
+#define NOTE_A4  440
+#define NOTE_AS4 466
+#define NOTE_B4  494
+#define NOTE_C5  523
+#define NOTE_CS5 554
+#define NOTE_D5  587
+#define NOTE_DS5 622
+#define NOTE_E5  659
+#define NOTE_F5  698
+#define NOTE_FS5 740
+#define NOTE_G5  784
+#define NOTE_GS5 831
+#define NOTE_A5  880
+#define NOTE_AS5 932
+#define NOTE_B5  988
+#define NOTE_C6  1047
+#define NOTE_CS6 1109
+#define NOTE_D6  1175
+#define NOTE_DS6 1245
+#define NOTE_E6  1319
+#define NOTE_F6  1397
+#define NOTE_FS6 1480
+#define NOTE_G6  1568
+#define NOTE_GS6 1661
+#define NOTE_A6  1760
+#define NOTE_AS6 1865
+#define NOTE_B6  1976
+#define NOTE_C7  2093
+#define NOTE_CS7 2217
+#define NOTE_D7  2349
+#define NOTE_DS7 2489
+#define NOTE_E7  2637
+#define NOTE_F7  2794
+#define NOTE_FS7 2960
+#define NOTE_G7  3136
+#define NOTE_GS7 3322
+#define NOTE_A7  3520
+#define NOTE_AS7 3729
+#define NOTE_B7  3951
+#define NOTE_C8  4186
+#define NOTE_CS8 4435
+#define NOTE_D8  4699
+#define NOTE_DS8 4978
+#define REST      0
+
+
+// change this to make the song slower or faster
+int tempo = 108;
+
+
+// notes of the moledy followed by the duration.
+// a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
+// !!negative numbers are used to represent dotted notes,
+// so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
+int melody[] = {
+  
+  // Dart Vader theme (Imperial March) - Star wars 
+  // Score available at https://musescore.com/user/202909/scores/1141521
+  // The tenor saxophone part was used
+
+//A -> 13
+//B -> 12
+//C -> 11
+//D -> 10
+//E -> 9
+//F -> 7
+//G -> 6
+//REST -> 5
+  
+  
+  NOTE_AS4,8, 13, NOTE_AS4,8, 13, NOTE_AS4,8, 13,//1
+  NOTE_F5,2, 7, NOTE_C6,2, 11,
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_AS5,8, 13, NOTE_G5,2, 6, NOTE_C5,8, 11, NOTE_C5,8, 11, NOTE_C5,8, 11,
+  NOTE_F5,2, 7, NOTE_C6,2, 11,
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,  
+  
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11, //8  
+  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_AS5,8, 13, NOTE_G5,2, 6, NOTE_C5,-8, 11, NOTE_C5,16, 11,
+  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
+  NOTE_F5,8, 7, NOTE_G5,8, 6, NOTE_A5,8, 13, NOTE_G5,4, 6, NOTE_D5,8, 10, NOTE_E5, 4, 9, NOTE_C5,-8, 11, NOTE_C5,16, 11,
+  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
+  
+  NOTE_C6,-8, 11, NOTE_G5,16, 6, NOTE_G5,2, 6, REST,8, 5, NOTE_C5,8, 11,//13
+  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
+  NOTE_F5,8, 7, NOTE_G5,8, 6, NOTE_A5,8, 13, NOTE_G5,4, 6, NOTE_D5,8, 10, NOTE_E5,4, 9, NOTE_C6,-8, 11, NOTE_C6,16, 11,
+  NOTE_F6,4, 7, NOTE_DS6,8, 10, NOTE_CS6,4, 11, NOTE_C6,8, 11, NOTE_AS5,4, 13, NOTE_GS5,8, 6, NOTE_G5,4, 6, NOTE_F5,8, 7,
+  NOTE_C6,1, 11
+  
+};
+
+// sizeof gives the number of bytes, each int value is composed of two bytes (16 bits)
+// there are two values per note (pitch and duration), so for each note there are four bytes
+int notes = sizeof(melody) / sizeof(melody[0]) / 3;
+
+// this calculates the duration of a whole note in ms
+int wholenote = (60000 * 4) / tempo;
+
+int divider = 0, noteDuration = 0;
+
+
+
+
+
+
 
 //===================================================================================================
 // Setup
@@ -153,11 +282,11 @@ void setup()
       delay(2000);
       digitalWrite(LEDBarraPIN[ii][iii],LOW);
       delay(1000);
-      Serial.print(ii);
-      Serial.print(" - ");
-      Serial.print(iii);      
-      Serial.print(" - ");
-      Serial.println(LEDBarraPIN[ii][iii]);
+      //Serial.print(ii);
+      //Serial.print(" - ");
+      //Serial.print(iii);      
+      //Serial.print(" - ");
+      //Serial.println(LEDBarraPIN[ii][iii]);
     }
   }
 
@@ -173,15 +302,22 @@ void setup()
 //===================================================================================================
 void loop() 
 {
-  ReadRFID();
-//  LeggePulsantiSblocco();
-  GestisceCardSblocco();
-//  Serial.print("Stato generale ");
-//  Serial.print(HallDigitalState, BIN);
-//  Serial.print("   -  Sblocco Flag ");
-//  Serial.println(SbloccoFlag, BIN);
-  LeggeSensori(SogliaPerHall);
-  BuzzAllarm();
+  if (bitRead(HallDigitalState,5)==1)
+  {
+    if (millis()<ThisMoment+100)
+    {
+      ReadRFID();
+    }
+    StarWarsOverture();
+    GestisceCardSblocco();
+  }
+  else
+  {
+    ReadRFID();
+    GestisceCardSblocco();
+    LeggeSensori(SogliaPerHall);
+    BuzzAllarm();
+  }
   LEDAllarm();
 }
 
@@ -195,12 +331,12 @@ void LeggeSensori(uint16_t Soglia)
 {
   HallDigitalState = HallDigitalState & B11110000;//Azzera lo stato digitale degli allarmi
   //Legge i sensori in analogico e ricava lo stato digitale
-  Serial.print("Analogici ");
+//  //Serial.print("Analogici ");
   for (int ii=0; ii< NumSensori; ii++)
   {
     HallLettura[ii] = analogRead(HallAPIN[ii]);
-    Serial.print(HallLettura[ii]);
-    Serial.print(" - ");
+//    //Serial.print(HallLettura[ii]);
+//    //Serial.print(" - ");
     //Setta il risultato sotto forma digitale
     if(HallLettura[ii]> Soglia)
     {
@@ -211,7 +347,7 @@ void LeggeSensori(uint16_t Soglia)
       bitSet(HallDigitalState, ii);
     }
   }
-  Serial.println();
+//  //Serial.println();
 }
 
 //===================================================================================================
@@ -219,7 +355,7 @@ void LeggeSensori(uint16_t Soglia)
 //===================================================================================================
 void ReadRFID()
 {
-//  Serial.println("Inizio controllo CARD");
+//  //Serial.println("Inizio controllo CARD");
   // Reset the loop if no new card present on the sensor/reader. This saves the entire process when idle.
   if ( ! mfrc522.PICC_IsNewCardPresent())
   {
@@ -231,7 +367,7 @@ void ReadRFID()
         SbloccoCompare=RFIDCompare;
         RFIDCompare=99;
         SbloccoFlag=0;
-        Serial.println("Nessuna card rilevata");
+//        //Serial.println("Nessuna card rilevata");
       }
     }
     return;
@@ -240,20 +376,20 @@ void ReadRFID()
   // Select one of the cards
   if ( ! mfrc522.PICC_ReadCardSerial())
   {
-    Serial.println("--------------------------- Card Serial");
+    //Serial.println("--------------------------- Card Serial");
     RFIDCompare=99;
     return;
   }
   if(RFIDCompare==99)
   {
-    Serial.println("Ciclo di reset");
+    //Serial.println("Ciclo di reset");
     mfrc522.PCD_Init();         // Init MFRC522 card
     RFID_UID(mfrc522.uid.uidByte, mfrc522.uid.size);
   }
-  Serial.print("Fine controllo CARD. Flag ");
-  Serial.print(RFIDFlag);
-  Serial.print(" Compare ");
-  Serial.println(RFIDCompare);
+  //Serial.print("Fine controllo CARD. Flag ");
+  //Serial.print(RFIDFlag);
+  //Serial.print(" Compare ");
+  //Serial.println(RFIDCompare);
 }
 
 //===================================================================================================
@@ -265,24 +401,24 @@ void RFID_UID(byte *buffer, byte bufferSize)
   for (byte i = 0; i < bufferSize; i++) 
   //Scandisce tutti i caratteri del codice
   {
-//    Serial.print("Contatore ");
-//    Serial.println(i);
+//    //Serial.print("Contatore ");
+//    //Serial.println(i);
     ReadKey[i]="";
     ReadKey[i]=buffer[i];
-//    Serial.print(" Value [0] ");
-//    Serial.print(ReadKey[i],HEX);
-//    Serial.print(" Scan ");
+//    //Serial.print(" Value [0] ");
+//    //Serial.print(ReadKey[i],HEX);
+//    //Serial.print(" Scan ");
     if ((i==0) & (RFIDCompare == 99))
     //Scandisce il primo carattere di ogni codice noto per vedere se corrisponde a quello letto
     {
       for (uint8_t iii=0; iii< NR_KNOWN_KEYS; iii++)
       {
-//        Serial.print(iii);
-//        Serial.print(" - ");
+//        //Serial.print(iii);
+//        //Serial.print(" - ");
         if(ReadKey[i]==knownKeys[iii][i])
         {
-//          Serial.print(" Value [1] ");
-//          Serial.println(knownKeys[iii][i],HEX);
+//          //Serial.print(" Value [1] ");
+//          //Serial.println(knownKeys[iii][i],HEX);
           RFIDCompare=iii;
           iii=NR_KNOWN_KEYS;
         }
@@ -294,14 +430,14 @@ void RFID_UID(byte *buffer, byte bufferSize)
         if(ReadKey[i]!=knownKeys[RFIDCompare][i])
         //Se uno dei caratteri successivi al primo non corrisponde blocca il controllo
         {
-//          Serial.print(" Value [n] ");
-//          Serial.println(knownKeys[RFIDCompare][i],HEX);
+//          //Serial.print(" Value [n] ");
+//          //Serial.println(knownKeys[RFIDCompare][i],HEX);
           RFIDCompare=99;
         }      
     }
   }
-  Serial.print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Fine controllo ");
-  Serial.println(RFIDCompare);
+  //Serial.print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> Fine controllo ");
+  //Serial.println(RFIDCompare);
   RFIDFlag=99;
 }
 
@@ -314,32 +450,34 @@ void GestisceCardSblocco()
   //Se è la prima volta che ci passa
   //gestisce il caso
   {
-    Serial.print("Sblocco Flag ");
-    Serial.println(SbloccoFlag);
-    Serial.print(" - Sblocco Compare ");
-    Serial.println(RFIDCompare);
+    //Serial.print("Sblocco Flag ");
+    //Serial.println(SbloccoFlag);
+    //Serial.print(" - Sblocco Compare ");
+    //Serial.println(RFIDCompare);
     SbloccoFlag++;
     switch (SbloccoCompare)
     {
       case 99://??
         break;
       case 0://Verde cancello 1
+        ThisMoment=0;
         bitWrite(HallDigitalState,6,!(bitRead(HallDigitalState,6)));
 //        RFIDFlag=0;
         //RFIDCompare=99;
         //Azzera il contatore dei LED così da effettuare subito il controllo
         LEDTime=0;
-        Serial.print(HallDigitalState,BIN);
-        Serial.println("========================================>Sbloccato cancello 1");
+        //Serial.print(HallDigitalState,BIN);
+        //Serial.println("========================================>Sbloccato cancello 1");
         break;
       case 1://Verde Cancello 2
+        ThisMoment=0;
         bitWrite(HallDigitalState,7,!(bitRead(HallDigitalState,7)));
 //        RFIDFlag=1;
         //RFIDCompare=99;
         //Azzera il contatore dei LED così da effettuare subito il controllo
         LEDTime=0;
-        Serial.print(HallDigitalState,BIN);
-        Serial.println("========================================>Sbloccato cancello 2");
+        //Serial.print(HallDigitalState,BIN);
+        //Serial.println("========================================>Sbloccato cancello 2");
         break;
       case 2:
         break;
@@ -352,8 +490,12 @@ void GestisceCardSblocco()
       case 6:
         break;
       case 7:
-        break;
-      case 8:
+        bitSet(HallDigitalState,7);
+        bitSet(HallDigitalState,6);
+        bitWrite(HallDigitalState,5,!bitRead(HallDigitalState,5));
+        LEDAllarm();
+        ThisNote=0;
+        ThisMoment=0;
         break;
       default:
         break;
@@ -380,8 +522,8 @@ void LeggePulsantiSblocco()
       {
         bitWrite(HallDigitalState,6+ii,!(bitRead(HallDigitalState,6+ii)));
         bitSet(SbloccoFlag,6+ii);
-        Serial.print(ii);
-        Serial.println(" SbloccoFlag 167, SET");
+        //Serial.print(ii);
+        //Serial.println(" SbloccoFlag 167, SET");
         digitalWrite(SbloccoLEDPIN[ii],bitRead(HallDigitalState,6+ii));
       }
     }
@@ -396,8 +538,8 @@ void LeggePulsantiSblocco()
         //Resetta il controllo del loop 
         {
           bitClear(SbloccoFlag,6+ii);
-          Serial.print(ii);
-          Serial.println(" SbloccoFlag 181, CLEAR");
+          //Serial.print(ii);
+          //Serial.println(" SbloccoFlag 181, CLEAR");
         }
       }
     }
@@ -420,7 +562,7 @@ void BuzzAllarm()
     switch (BuzzerState)
     {
       case 0://Allarme scattato Primo ciclo di allarme
-        Serial.println("Imposto il primo tono");
+        //Serial.println("Imposto il primo tono");
         BuzzerState=1;//Indica che sta per suonare
         BuzzerTime = millis();//Prende il tempo quando inizia a suonare
         tone(BuzzerLeftPIN,BuzzerTono1,BuzzerTCiclo);
@@ -428,7 +570,7 @@ void BuzzAllarm()
       case 1://Allarme scattato Ciclo 1 in corso 
         if (millis()>=(BuzzerTime+BuzzerTCiclo))
         {
-          Serial.println("Imposto tono 2");
+          //Serial.println("Imposto tono 2");
           BuzzerState=2;//Indica che sta per suonare
           BuzzerTime = millis();//Prende il tempo quando inizia a suonare
           tone(BuzzerLeftPIN,BuzzerTono2,BuzzerTCiclo);
@@ -437,7 +579,7 @@ void BuzzAllarm()
       case 2://Allarme scattat0 Ciclo 2 in corso 
         if (millis()>=(BuzzerTime+BuzzerTCiclo))
         {
-          Serial.println("Imposto tono 1");
+          //Serial.println("Imposto tono 1");
           BuzzerState=1;//Indica che sta per suonare
           BuzzerTime = millis();//Prende il tempo quando inizia a suonare
           tone(BuzzerLeftPIN,BuzzerTono1,BuzzerTCiclo);
@@ -472,17 +614,17 @@ void LEDAllarm()
     //Aggiorna il riferimento del tempo
     LEDTime=millis();
 
-    Serial.print("STATUS bit ");
-    Serial.print(HallDigitalState);
-    Serial.print(" & ");
-    Serial.print(HallDigitalState&B10000000);
-    Serial.print(" Sono dentro a ");
+    //Serial.print("STATUS bit ");
+    //Serial.print(HallDigitalState);
+    //Serial.print(" & ");
+    //Serial.print(HallDigitalState&B10000000);
+    //Serial.print(" Sono dentro a ");
 
     //Cancello 1
     if (bitRead(HallDigitalState,6) == 1)
     //Verde sul cancello 1
     {
-      Serial.print("CANCELLO 1 - inverti VERDE");
+      //Serial.print("CANCELLO 1 - inverti VERDE");
       //Inverte lo stato della barra verde
       digitalWrite(LEDBarraPIN[0][1], !digitalRead(LEDBarraPIN[0][1]));
       //Spegne il rosso
@@ -491,7 +633,7 @@ void LEDAllarm()
     else
     //Inverte lo stato della barra rossa
     {
-      Serial.print("CANCELLO 1 - inverti ROSSO");
+      //Serial.print("CANCELLO 1 - inverti ROSSO");
       digitalWrite(LEDBarraPIN[0][0], !digitalRead(LEDBarraPIN[0][0]));
       //Spegne il verde
       digitalWrite(LEDBarraPIN[0][1], LOW);
@@ -502,7 +644,7 @@ void LEDAllarm()
     //Verde sul cancello 2
     {
       //Inverte lo stato della barra verde
-      Serial.println(" - CANCELLO 2 - inverti VERDE");
+      //Serial.println(" - CANCELLO 2 - inverti VERDE");
       digitalWrite(LEDBarraPIN[1][1], !digitalRead(LEDBarraPIN[1][1]));
       //Spegne il rosso
       digitalWrite(LEDBarraPIN[1][0], LOW);
@@ -510,10 +652,52 @@ void LEDAllarm()
     else
     //Inverte lo stato della barra rossa
     {
-      Serial.println(" - CANCELLO 2 - inverti ROSSO");
+      //Serial.println(" - CANCELLO 2 - inverti ROSSO");
       digitalWrite(LEDBarraPIN[1][0], !digitalRead(LEDBarraPIN[1][0]));
       //Spegne il verde
       digitalWrite(LEDBarraPIN[1][1], LOW);
+    }
+  }
+}
+
+
+void StarWarsOverture() 
+{ 
+  if (ThisMoment==0)
+  //Se non sta suonando una nota inizia a suonare la prossima
+  {
+    // calculates the duration of each note
+    divider = melody[ThisNote + 1];
+    if (divider > 0) {
+      // regular note, just proceed
+      noteDuration = (wholenote) / divider;
+    } else if (divider < 0) {
+      // dotted notes are represented with negative durations!!
+      noteDuration = (wholenote) / abs(divider);
+      noteDuration *= 1.5; // increases the duration in half for dotted notes
+    }
+
+    //Azzera il tempo
+    ThisMoment=millis();
+
+    // we only play the note for 90% of the duration, leaving 10% as a pause
+    tone(BuzzerLeftPIN, melody[ThisNote], noteDuration*0.95);
+  }
+  else 
+  {
+    if(millis() >= ThisMoment+noteDuration)
+    {
+      // stop the waveform generation before the next note.
+      //noTone(BuzzerLeftPIN);
+      ThisMoment=0;
+      if (ThisNote<=(notes*3))
+      {
+        ThisNote+=3;
+      }
+      else
+      {
+        ThisNote=0;
+      }
     }
   }
 }
