@@ -54,6 +54,40 @@ The system is controlled by RFID card. The minimum number of cards needed is 4 f
 
 > Card 4 - Activate / deactivate Star Wars mode (in Star Wars mode the two gates are Green and the siren sounds the Star Wars Overtur). When the Overture is over or when the execution is interrupted, the traffic lights of the two gates remain Green
 
+Hardware structure
+
+The device consists of:
+
+- a control unit (Arduino board)
+
+- four power drivers for switching on the LEDs (optoisolated MOSFETs)
+
+- four Hall effect sensors (type with analogue output but those with digital output may also work)
+
+- a card for reading RFID devices
+
+- an audio power amplifier (the one contained in the PC speakers) connected to speakers.
+
+- A power supply for the logic part (connects the Arduino and the other logic boards to the power supply of the amplifier)
+
+- a 12V power supply (to turn on the LEDs)
+
+- RGB strip led
+
+The LEDs and the power part that controls them are powered separately via the 12V power supply. The logical ground is NOT connected to the power ground. This choice increases the safety of the device against the danger of electric shock.
+
+Software structure
+
+The code was developed in independent and interconnected modules. The main element that provides the operating indications of the individual modules is the status variable (HallDigitalState), the 4 least significant bits record the state of the Hall effect sensors, the fifth bit activates or deactivates the siren, the sixth activates or deactivates the Star Wars mode and the seventh and the eighth report the status of the traffic lights.
+
+The individual modules are called up so that all the functions are performed in the correct sequence.
+
+Two paths have been defined in the loop, one simplified dedicated to the execution phase of Star Wars Overture and the other complete. this choice was made to optimize the execution of the piece.
+
+Initialisation cycle.
+
+During the initialisation cycle, the green and red lights of each gate are switched on successively and the audio part is tested by performing the start of the Pink Panther Theme. This song is performed only during the initialization cycle.
+
 Components:
 
 - 1 old (or cheap) computer speakers. They must be of sufficient size to contain all the electronics. They must be amplified and powered at 230V.
