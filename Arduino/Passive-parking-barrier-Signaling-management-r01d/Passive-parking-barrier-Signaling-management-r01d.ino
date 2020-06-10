@@ -93,7 +93,7 @@ const int LEDBarraPIN[NumeroBarre] [NumeroColori] = {LEDBarraPIN12RossoPIN,
                                                      LEDBarraPIN34RossoPIN,
                                                      LEDBarraPIN34VerdePIN};
 
-#define LEDFlash 1200
+uint16_t LEDFlash[2] = {1400,800};
 uint8_t LEDColor[2]={0, 0};
 boolean LEDCounter=LOW;
 float LEDTime;
@@ -113,7 +113,8 @@ int HallAPIN[NumSensori] = {SbarraSensor1APIN,
                                 SbarraSensor4APIN};
 //Registra lo stato del sistema
 //bit 8,7 richiesta di sblocco
-//bit 6,5 Non usati
+//bit 6 Esegue Star Wars Teme
+//bit 5 Blocca sirena
 //bit 4,3 stato sensori porta 2
 //bit 2,1 stato sensori porta 1
 uint8_t HallDigitalState = 0;
@@ -193,12 +194,15 @@ uint8_t ThisNote;
 // change this to make the song slower or faster
 int tempo = 108;
 
+// there are tree values per note (pitch, duration and LED associated), so for each note there are four bytes
+#define notes 88
 
 // notes of the moledy followed by the duration.
 // a 4 means a quarter note, 8 an eighteenth , 16 sixteenth, so on
 // !!negative numbers are used to represent dotted notes,
 // so -4 means a dotted quarter note, that is, a quarter plus an eighteenth!!
-int melody[] = {
+int melody[notes*2];
+const int StarWarsOverture[notes*2] PROGMEM = {
   
   // Dart Vader theme (Imperial March) - Star wars 
   // Score available at https://musescore.com/user/202909/scores/1141521
@@ -214,41 +218,64 @@ int melody[] = {
 //REST -> 5
   
   
-  NOTE_AS4,8, 13, NOTE_AS4,8, 13, NOTE_AS4,8, 13,//1
-  NOTE_F5,2, 7, NOTE_C6,2, 11,
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_AS5,8, 13, NOTE_G5,2, 6, NOTE_C5,8, 11, NOTE_C5,8, 11, NOTE_C5,8, 11,
-  NOTE_F5,2, 7, NOTE_C6,2, 11,
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11,  
+  NOTE_AS4,8, NOTE_AS4,8, NOTE_AS4,8,//1
+  NOTE_F5,2,  NOTE_C6,2,
+  NOTE_AS5,8, NOTE_A5,8,  NOTE_G5,8,  NOTE_F6,2, NOTE_C6,4,
+  NOTE_AS5,8, NOTE_A5,8,  NOTE_G5,8,  NOTE_F6,2, NOTE_C6,4,
+  NOTE_AS5,8, NOTE_A5,8,  NOTE_AS5,8, NOTE_G5,2, NOTE_C5,8, NOTE_C5,8, NOTE_C5,8,
+  NOTE_F5,2,  NOTE_C6,2,
+  NOTE_AS5,8, NOTE_A5,8,  NOTE_G5,8,  NOTE_F6,2, NOTE_C6,4,  
   
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F6,2, 7, NOTE_C6,4, 11, //8  
-  NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_AS5,8, 13, NOTE_G5,2, 6, NOTE_C5,-8, 11, NOTE_C5,16, 11,
-  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
-  NOTE_F5,8, 7, NOTE_G5,8, 6, NOTE_A5,8, 13, NOTE_G5,4, 6, NOTE_D5,8, 10, NOTE_E5, 4, 9, NOTE_C5,-8, 11, NOTE_C5,16, 11,
-  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
+  NOTE_AS5,8, NOTE_A5,8, NOTE_G5,8,  NOTE_F6,2, NOTE_C6,4, //8  
+  NOTE_AS5,8, NOTE_A5,8, NOTE_AS5,8, NOTE_G5,2, NOTE_C5,-8, NOTE_C5,16,
+  NOTE_D5,-4, NOTE_D5,8, NOTE_AS5,8, NOTE_A5,8, NOTE_G5,8,  NOTE_F5,8, 
+  NOTE_F5,8,  NOTE_G5,8, NOTE_A5,8,  NOTE_G5,4, NOTE_D5,8,  NOTE_E5, 4, NOTE_C5,-8, NOTE_C5,16,
+  NOTE_D5,-4, NOTE_D5,8, NOTE_AS5,8, NOTE_A5,8, NOTE_G5,8,  NOTE_F5,8,
   
-  NOTE_C6,-8, 11, NOTE_G5,16, 6, NOTE_G5,2, 6, REST,8, 5, NOTE_C5,8, 11,//13
-  NOTE_D5,-4, 10, NOTE_D5,8, 10, NOTE_AS5,8, 13, NOTE_A5,8, 13, NOTE_G5,8, 6, NOTE_F5,8, 7,
-  NOTE_F5,8, 7, NOTE_G5,8, 6, NOTE_A5,8, 13, NOTE_G5,4, 6, NOTE_D5,8, 10, NOTE_E5,4, 9, NOTE_C6,-8, 11, NOTE_C6,16, 11,
-  NOTE_F6,4, 7, NOTE_DS6,8, 10, NOTE_CS6,4, 11, NOTE_C6,8, 11, NOTE_AS5,4, 13, NOTE_GS5,8, 6, NOTE_G5,4, 6, NOTE_F5,8, 7,
-  NOTE_C6,1, 11
+  NOTE_C6,-8, NOTE_G5,16, NOTE_G5,2,  REST,8,    NOTE_C5,8,//13
+  NOTE_D5,-4, NOTE_D5,8,  NOTE_AS5,8, NOTE_A5,8, NOTE_G5,8,  NOTE_F5,8,
+  NOTE_F5,8,  NOTE_G5,8,  NOTE_A5,8,  NOTE_G5,4, NOTE_D5,8,  NOTE_E5,4,  NOTE_C6,-8, NOTE_C6,16,
+  NOTE_F6,4,  NOTE_DS6,8, NOTE_CS6,4, NOTE_C6,8, NOTE_AS5,4, NOTE_GS5,8, NOTE_G5,4,  NOTE_F5,8,
+  NOTE_C6,1
   
 };
 
-// sizeof gives the number of bytes, each int value is composed of two bytes (16 bits)
-// there are two values per note (pitch and duration), so for each note there are four bytes
-int notes = sizeof(melody) / sizeof(melody[0]) / 3;
+const int PinkPanterTeme[notes*2] PROGMEM= {
+
+  // Pink Panther theme
+  // Score available at https://musescore.com/benedictsong/the-pink-panther
+  // Theme by Masato Nakamura, arranged by Teddy Mason
+
+  REST,2, REST,4, REST,8, NOTE_DS4,8, 
+  NOTE_E4,-4, REST,8, NOTE_FS4,8, NOTE_G4,-4, REST,8, NOTE_DS4,8,
+  NOTE_E4,-8, NOTE_FS4,8,  NOTE_G4,-8, NOTE_C5,8, NOTE_B4,-8, NOTE_E4,8, NOTE_G4,-8, NOTE_B4,8,   
+  NOTE_AS4,2, NOTE_A4,-16, NOTE_G4,-16, NOTE_E4,-16, NOTE_D4,-16, 
+  NOTE_E4,2, REST,4, REST,8, NOTE_DS4,4,
+
+  NOTE_E4,-4, REST,8, NOTE_FS4,8, NOTE_G4,-4, REST,8, NOTE_DS4,8,
+  NOTE_E4,-8, NOTE_FS4,8,  NOTE_G4,-8, NOTE_C5,8, NOTE_B4,-8, NOTE_G4,8, NOTE_B4,-8, NOTE_E5,8,
+  NOTE_DS5,1,   
+  NOTE_D5,2, REST,4, REST,8, NOTE_DS4,8, 
+  NOTE_E4,-4, REST,8, NOTE_FS4,8, NOTE_G4,-4, REST,8, NOTE_DS4,8,
+  NOTE_E4,-8, NOTE_FS4,8,  NOTE_G4,-8, NOTE_C5,8, NOTE_B4,-8, NOTE_E4,8, NOTE_G4,-8, NOTE_B4,8,   
+  
+  NOTE_AS4,2, NOTE_A4,-16, NOTE_G4,-16, NOTE_E4,-16, NOTE_D4,-16, 
+  NOTE_E4,-4, REST,4,
+  REST,4, NOTE_E5,-8, NOTE_D5,8, NOTE_B4,-8, NOTE_A4,8, NOTE_G4,-8, NOTE_E4,-8,
+  NOTE_AS4,16, NOTE_A4,-8, NOTE_AS4,16, NOTE_A4,-8, NOTE_AS4,16, NOTE_A4,-8, NOTE_AS4,16, NOTE_A4,-8,   
+  NOTE_G4,-16, NOTE_E4,-16, NOTE_D4,-16, NOTE_E4,16, NOTE_E4,16, NOTE_E4,2,
+ 
+};
+
+
+//// sizeof gives the number of bytes, each int value is composed of two bytes (16 bits)
+//// there are two values per note (pitch and duration), so for each note there are four bytes
+//int notes = sizeof(melody) / sizeof(melody[0]) / 3;
 
 // this calculates the duration of a whole note in ms
 int wholenote = (60000 * 4) / tempo;
 
 int divider = 0, noteDuration = 0;
-
-
-
-
-
 
 
 //===================================================================================================
@@ -282,20 +309,20 @@ void setup()
       digitalWrite(LEDBarraPIN[ii][iii],HIGH);
       delay(2000);
       digitalWrite(LEDBarraPIN[ii][iii],LOW);
-      delay(1000);
-      //Serial.print(ii);
-      //Serial.print(" - ");
-      //Serial.print(iii);      
-      //Serial.print(" - ");
-      //Serial.println(LEDBarraPIN[ii][iii]);
+      delay(500);
     }
   }
 
   pinMode(BuzzerLeftPIN, OUTPUT);
-  tone(BuzzerLeftPIN,1200,200);
-  delay(300);
-  tone(BuzzerLeftPIN,600,200);
-  delay(200);
+  PlayPink();
+  ThisNote=0;
+  ThisMoment=0;
+  while(ThisNote<=48)
+  {
+    Serial.println(ThisNote);
+    PlayMusic();
+  }
+  PlayStar();
 }
 
 //===================================================================================================
@@ -303,19 +330,14 @@ void setup()
 //===================================================================================================
 void loop() 
 {
+  ReadRFID();
+  GestisceCardSblocco();
   if (bitRead(HallDigitalState,5)==1)
   {
-    if (millis()<ThisMoment+100)
-    {
-      ReadRFID();
-    }
-    StarWarsOverture();
-    GestisceCardSblocco();
+    PlayMusic();
   }
   else
   {
-    ReadRFID();
-    GestisceCardSblocco();
     LeggeSensori(SogliaPerHall);
     BuzzAllarm();
   }
@@ -332,12 +354,12 @@ void LeggeSensori(uint16_t Soglia)
 {
   HallDigitalState = HallDigitalState & B11110000;//Azzera lo stato digitale degli allarmi
   //Legge i sensori in analogico e ricava lo stato digitale
-//  //Serial.print("Analogici ");
+  //Serial.print("Analogici ");
   for (int ii=0; ii< NumSensori; ii++)
   {
     HallLettura[ii] = analogRead(HallAPIN[ii]);
-//    //Serial.print(HallLettura[ii]);
-//    //Serial.print(" - ");
+    //Serial.print(HallLettura[ii]);
+    //Serial.print(" - ");
     //Setta il risultato sotto forma digitale
     if(HallLettura[ii]> Soglia)
     {
@@ -451,30 +473,22 @@ void GestisceCardSblocco()
   //Se è la prima volta che ci passa
   //gestisce il caso
   {
-    //Serial.print("Sblocco Flag ");
-    //Serial.println(SbloccoFlag);
-    //Serial.print(" - Sblocco Compare ");
-    //Serial.println(RFIDCompare);
     SbloccoFlag++;
     switch (SbloccoCompare)
     {
       case 99://??
         break;
-      case 0://Verde cancello 1
+      case 0://CARD 1 - Verde cancello 1
         ThisMoment=0;
         bitWrite(HallDigitalState,6,!(bitRead(HallDigitalState,6)));
-//        RFIDFlag=0;
-        //RFIDCompare=99;
         //Azzera il contatore dei LED così da effettuare subito il controllo
         LEDTime=0;
         //Serial.print(HallDigitalState,BIN);
         //Serial.println("========================================>Sbloccato cancello 1");
         break;
-      case 1://Verde Cancello 2
+      case 1://CARD 2 - Verde Cancello 2
         ThisMoment=0;
         bitWrite(HallDigitalState,7,!(bitRead(HallDigitalState,7)));
-//        RFIDFlag=1;
-        //RFIDCompare=99;
         //Azzera il contatore dei LED così da effettuare subito il controllo
         LEDTime=0;
         //Serial.print(HallDigitalState,BIN);
@@ -488,9 +502,10 @@ void GestisceCardSblocco()
         break;
       case 5:
         break;
-      case 6:
+      case 6://CARD 7 - Silenzia la sirena
+        bitWrite(HallDigitalState,4,!bitRead(HallDigitalState,4));
         break;
-      case 7:
+      case 7://CARD 8 - Tutto VERDE ed esegue Star Wars
         bitSet(HallDigitalState,7);
         bitSet(HallDigitalState,6);
         bitWrite(HallDigitalState,5,!bitRead(HallDigitalState,5));
@@ -552,50 +567,58 @@ void LeggePulsantiSblocco()
 //===================================================================================================
 void BuzzAllarm()
 //Se:
+//-Il bit 4 è settato spegne l'allarme e passa oltre
+//
 //-un sensore è in allarme
 //-per il gate dove è scatatto l'allarme non è stato settato lo stato VERDE
 //-il buzzer NON sta già suonando
 //lo fa suonare
 {
-  if (((HallDigitalState&B00000011)!=0) & ((HallDigitalState&B01000000)==0) |
-      ((HallDigitalState&B00001100)!=0) & ((HallDigitalState&B10000000)==0))
+  if (HallDigitalState&B00010000==0)
   {
-    switch (BuzzerState)
+    if(((HallDigitalState&B00000011)!=0) & ((HallDigitalState&B01000000)==0) |
+      ((HallDigitalState&B00001100)!=0) & ((HallDigitalState&B10000000)==0))
     {
-      case 0://Allarme scattato Primo ciclo di allarme
-        //Serial.println("Imposto il primo tono");
-        BuzzerState=1;//Indica che sta per suonare
-        BuzzerTime = millis();//Prende il tempo quando inizia a suonare
-        tone(BuzzerLeftPIN,BuzzerTono1,BuzzerTCiclo);
-        break;
-      case 1://Allarme scattato Ciclo 1 in corso 
-        if (millis()>=(BuzzerTime+BuzzerTCiclo))
-        {
-          //Serial.println("Imposto tono 2");
-          BuzzerState=2;//Indica che sta per suonare
-          BuzzerTime = millis();//Prende il tempo quando inizia a suonare
-          tone(BuzzerLeftPIN,BuzzerTono2,BuzzerTCiclo);
-        }
-        break;
-      case 2://Allarme scattat0 Ciclo 2 in corso 
-        if (millis()>=(BuzzerTime+BuzzerTCiclo))
-        {
-          //Serial.println("Imposto tono 1");
+      switch (BuzzerState)
+      {
+        case 0://Allarme scattato Primo ciclo di allarme
+          //Serial.println("Imposto il primo tono");
           BuzzerState=1;//Indica che sta per suonare
           BuzzerTime = millis();//Prende il tempo quando inizia a suonare
           tone(BuzzerLeftPIN,BuzzerTono1,BuzzerTCiclo);
-        }
-        break;
-      default:
-        break;
+          break;
+        case 1://Allarme scattato Ciclo 1 in corso 
+          if (millis()>=(BuzzerTime+BuzzerTCiclo))
+          {
+            //Serial.println("Imposto tono 2");
+            BuzzerState=2;//Indica che sta per suonare
+            BuzzerTime = millis();//Prende il tempo quando inizia a suonare
+            tone(BuzzerLeftPIN,BuzzerTono2,BuzzerTCiclo);
+          }
+          break;
+        case 2://Allarme scattat0 Ciclo 2 in corso 
+          if (millis()>=(BuzzerTime+BuzzerTCiclo))
+          {
+            //Serial.println("Imposto tono 1");
+            BuzzerState=1;//Indica che sta per suonare
+            BuzzerTime = millis();//Prende il tempo quando inizia a suonare
+            tone(BuzzerLeftPIN,BuzzerTono1,BuzzerTCiclo);
+          }
+          break;
+        default:
+          break;
+      }
+    }
+    else
+    {
+      BuzzerState=0;
+      LEDColor[0]= LEDColor[1] = 0;
     }
   }
   else
   {
-    BuzzerState=0;
-    LEDColor[0]= LEDColor[1] = 0;
+    noTone(BuzzerLeftPIN);
   }
-  
 }
 
 //===================================================================================================
@@ -609,7 +632,9 @@ void LEDAllarm()
 //Passato TAlzata smette di lampeggiare
 //Lampeggia Verde quando è stato dato il comando di "avanti"
 {
-  if (millis()>(LEDTime+LEDFlash))
+  //La frequenza di lampeggio è doppia. Più lenta quando la sirena è attivabile, veloce quando
+  //la sirena è stat disabilitata
+  if (millis()>(LEDTime+LEDFlash[bitRead(HallDigitalState, 4)]))
   //Quando il tempo è finito aggiorna i LED
   {
     //Aggiorna il riferimento del tempo
@@ -662,7 +687,7 @@ void LEDAllarm()
 }
 
 
-void StarWarsOverture() 
+void PlayMusic() 
 { 
   if (ThisMoment==0)
   //Se non sta suonando una nota inizia a suonare la prossima
@@ -693,12 +718,30 @@ void StarWarsOverture()
       ThisMoment=0;
       if (ThisNote<=(notes*3))
       {
-        ThisNote+=3;
+        ThisNote+=2;
       }
       else
       {
         ThisNote=0;
       }
     }
+  }
+}
+
+void PlayPink()
+{
+  tempo = 120;
+  for (int ii=0;ii< notes*2; ii++)
+  {
+    melody[ii] = pgm_read_word_near(PinkPanterTeme + ii);
+  }
+}
+
+void PlayStar()
+{
+  tempo = 108;
+  for (int ii=0;ii< notes*2; ii++)
+  {
+    melody[ii] = pgm_read_word_near(StarWarsOverture + ii);
   }
 }
