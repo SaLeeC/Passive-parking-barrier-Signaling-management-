@@ -361,7 +361,10 @@ void LeggeSensori(uint16_t Soglia)
     //Serial.print(HallLettura[ii]);
     //Serial.print(" - ");
     //Setta il risultato sotto forma digitale
-    if(HallLettura[ii]> Soglia)
+    //Per sensori riferiti a massa usare <
+    //Per sensori riferiti al positivo usare >
+    //if(HallLettura[ii]> Soglia)
+    if(HallLettura[ii]< Soglia)
     {
       bitClear(HallDigitalState,ii);
     }
@@ -574,7 +577,7 @@ void BuzzAllarm()
 //-il buzzer NON sta già suonando
 //lo fa suonare
 {
-  if (HallDigitalState&B00010000==0)
+  if (bitRead(HallDigitalState,4)==0)
   {
     if(((HallDigitalState&B00000011)!=0) & ((HallDigitalState&B01000000)==0) |
       ((HallDigitalState&B00001100)!=0) & ((HallDigitalState&B10000000)==0))
